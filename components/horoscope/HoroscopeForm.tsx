@@ -8,20 +8,67 @@ import { CanhGioPicker } from './CanhGioPicker';
 export function HoroscopeForm() {
   const router = useRouter();
 
+  // Khởi tạo hoàn toàn trống (không có giá trị mặc định)
   const [formData, setFormData] = useState<HoroscopeFormData>({
-    name: 'Khách Thập Phương',
-    gender: 'male',
+    name: '',
+    gender: '',
     isLunar: false,
-    day: 15,
-    month: 8,
-    year: 1995,
-    hour: 10,
-    minute: 30,
-    viewYear: 2026,
+    day: '',
+    month: '',
+    year: '',
+    hour: '',
+    minute: '',
+    viewYear: '',
   });
+
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Chặn gõ chữ cái và ký tự đặc biệt, chỉ cho phép phím điều khiển và phím số
+  const handleDigitKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (
+      [
+        'Backspace',
+        'Delete',
+        'Tab',
+        'Escape',
+        'Enter',
+        'ArrowLeft',
+        'ArrowRight',
+        'ArrowUp',
+        'ArrowDown',
+      ].includes(e.key) ||
+      e.ctrlKey ||
+      e.metaKey
+    ) {
+      return;
+    }
+    // Nếu không phải là chữ số 0-9 thì chặn sự kiện gõ phím
+    if (!/^\d$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const handleYearChange = (val: string) => {
+    // Lọc sạch toàn bộ ký tự không phải số và giới hạn tối đa 4 chữ số
+    const cleanDigits = val.replace(/\D/g, '').slice(0, 4);
+    setFormData((prev) => ({
+      ...prev,
+      year: cleanDigits === '' ? '' : Number(cleanDigits),
+    }));
+    setErrorMsg(null);
+  };
+
+  const handleViewYearChange = (val: string) => {
+    const cleanDigits = val.replace(/\D/g, '').slice(0, 4);
+    setFormData((prev) => ({
+      ...prev,
+      viewYear: cleanDigits === '' ? '' : Number(cleanDigits),
+    }));
+  };
 
   const handleGenderChange = (gender: Gender) => {
     setFormData((prev) => ({ ...prev, gender }));
+    setErrorMsg(null);
   };
 
   const handleCalendarChange = (isLunar: boolean) => {
@@ -30,20 +77,44 @@ export function HoroscopeForm() {
 
   const handleQuickCanhGio = (hour: number, minute: number) => {
     setFormData((prev) => ({ ...prev, hour, minute }));
+    setErrorMsg(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
+
+    if (!formData.name.trim()) {
+      setErrorMsg('Vui lòng nhập họ và tên gia chủ.');
+      return;
+    }
+    if (!formData.gender) {
+      setErrorMsg('Vui lòng chọn giới tính (Nam hoặc Nữ).');
+      return;
+    }
+    if (formData.day === '' || formData.month === '' || formData.year === '') {
+      setErrorMsg('Vui lòng nhập đầy đủ ngày, tháng và năm sinh.');
+      return;
+    }
+    if (Number(formData.year) < 1900 || Number(formData.year) > 2100) {
+      setErrorMsg('Vui lòng nhập năm sinh hợp lệ (từ 1900 đến 2100).');
+      return;
+    }
+    if (formData.hour === '') {
+      setErrorMsg('Vui lòng chọn giờ sinh hoặc bấm chọn 1 trong 12 canh giờ bên dưới.');
+      return;
+    }
+
     const query = new URLSearchParams({
-      name: formData.name.trim() || 'Người Xem',
+      name: formData.name.trim(),
       gender: formData.gender,
       isLunar: String(formData.isLunar),
       day: String(formData.day),
       month: String(formData.month),
       year: String(formData.year),
       hour: String(formData.hour),
-      minute: String(formData.minute),
-      viewYear: String(formData.viewYear),
+      minute: String(formData.minute === '' ? 0 : formData.minute),
+      viewYear: String(formData.viewYear !== '' ? formData.viewYear : 2026),
     });
 
     router.push(`/laso?${query.toString()}`);
@@ -60,21 +131,24 @@ export function HoroscopeForm() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="sm:col-span-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-amber-300 mb-1.5 font-serif">
-              Họ và tên gia chủ
+              Họ và tên gia chủ <span className="text-rose-400">*</span>
             </label>
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, name: e.target.value });
+                setErrorMsg(null);
+              }}
               placeholder="Nhập họ và tên..."
-              className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700/80 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none text-slate-100 transition text-sm font-medium"
+              className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700/80 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none text-slate-100 transition text-sm font-medium placeholder:text-slate-500"
               required
             />
           </div>
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-amber-300 mb-1.5 font-serif">
-              Giới tính
+              Giới tính <span className="text-rose-400">*</span>
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -137,12 +211,24 @@ export function HoroscopeForm() {
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-[11px] text-slate-400 font-medium mb-1">Ngày sinh</label>
+              <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                Ngày sinh <span className="text-rose-400">*</span>
+              </label>
               <select
                 value={formData.day}
-                onChange={(e) => setFormData({ ...formData, day: Number(e.target.value) })}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    day: e.target.value === '' ? '' : Number(e.target.value),
+                  });
+                  setErrorMsg(null);
+                }}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 focus:border-amber-400 outline-none text-sm text-slate-100 font-medium cursor-pointer"
+                required
               >
+                <option value="" className="text-slate-500">
+                  -- Ngày --
+                </option>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
                   <option key={d} value={d}>
                     Ngày {d}
@@ -152,12 +238,24 @@ export function HoroscopeForm() {
             </div>
 
             <div>
-              <label className="block text-[11px] text-slate-400 font-medium mb-1">Tháng sinh</label>
+              <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                Tháng sinh <span className="text-rose-400">*</span>
+              </label>
               <select
                 value={formData.month}
-                onChange={(e) => setFormData({ ...formData, month: Number(e.target.value) })}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    month: e.target.value === '' ? '' : Number(e.target.value),
+                  });
+                  setErrorMsg(null);
+                }}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 focus:border-amber-400 outline-none text-sm text-slate-100 font-medium cursor-pointer"
+                required
               >
+                <option value="" className="text-slate-500">
+                  -- Tháng --
+                </option>
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                   <option key={m} value={m}>
                     Tháng {m}
@@ -167,18 +265,21 @@ export function HoroscopeForm() {
             </div>
 
             <div>
-              <label className="block text-[11px] text-slate-400 font-medium mb-1">Năm sinh</label>
-              <select
+              <label className="block text-[11px] text-slate-400 font-medium mb-1">
+                Năm sinh <span className="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
                 value={formData.year}
-                onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 focus:border-amber-400 outline-none text-sm text-slate-100 font-medium cursor-pointer"
-              >
-                {Array.from({ length: 110 }, (_, i) => 2030 - i).map((y) => (
-                  <option key={y} value={y}>
-                    Năm {y}
-                  </option>
-                ))}
-              </select>
+                onKeyDown={handleDigitKeyDown}
+                onChange={(e) => handleYearChange(e.target.value)}
+                placeholder="VD: 1995"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 focus:border-amber-400 outline-none text-sm text-slate-100 font-medium placeholder:text-slate-500"
+                required
+              />
             </div>
           </div>
         </div>
@@ -186,7 +287,7 @@ export function HoroscopeForm() {
         {/* Giờ Sinh & Canh Giờ */}
         <div className="border-t border-slate-800/80 pt-5">
           <label className="block text-xs font-bold uppercase tracking-wider text-amber-300 mb-1.5 font-serif">
-            Giờ & Phút sinh
+            Giờ & Phút sinh <span className="text-rose-400">*</span>
           </label>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
@@ -195,9 +296,19 @@ export function HoroscopeForm() {
                 <label className="block text-[11px] text-slate-400 font-medium mb-1">Giờ (0 - 23h)</label>
                 <select
                   value={formData.hour}
-                  onChange={(e) => setFormData({ ...formData, hour: Number(e.target.value) })}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      hour: e.target.value === '' ? '' : Number(e.target.value),
+                    });
+                    setErrorMsg(null);
+                  }}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 focus:border-amber-400 outline-none text-sm text-slate-100 font-medium cursor-pointer"
+                  required
                 >
+                  <option value="" className="text-slate-500">
+                    -- Giờ --
+                  </option>
                   {Array.from({ length: 24 }, (_, i) => i).map((h) => (
                     <option key={h} value={h}>
                       {h.toString().padStart(2, '0')} giờ
@@ -210,9 +321,17 @@ export function HoroscopeForm() {
                 <label className="block text-[11px] text-slate-400 font-medium mb-1">Phút (0 - 59p)</label>
                 <select
                   value={formData.minute}
-                  onChange={(e) => setFormData({ ...formData, minute: Number(e.target.value) })}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      minute: e.target.value === '' ? '' : Number(e.target.value),
+                    });
+                  }}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 focus:border-amber-400 outline-none text-sm text-slate-100 font-medium cursor-pointer"
                 >
+                  <option value="" className="text-slate-500">
+                    -- Phút --
+                  </option>
                   {Array.from({ length: 60 }, (_, i) => i).map((m) => (
                     <option key={m} value={m}>
                       {m.toString().padStart(2, '0')} phút
@@ -227,10 +346,15 @@ export function HoroscopeForm() {
                 Năm xem vận hạn (Lưu niên)
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
                 value={formData.viewYear}
-                onChange={(e) => setFormData({ ...formData, viewYear: Number(e.target.value) })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 focus:border-amber-400 outline-none text-sm text-slate-100 font-medium"
+                onKeyDown={handleDigitKeyDown}
+                onChange={(e) => handleViewYearChange(e.target.value)}
+                placeholder="VD: 2026"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 focus:border-amber-400 outline-none text-sm text-slate-100 font-medium placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -241,6 +365,14 @@ export function HoroscopeForm() {
             onSelect={handleQuickCanhGio}
           />
         </div>
+
+        {/* Thông báo lỗi nếu thiếu trường bắt buộc */}
+        {errorMsg && (
+          <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-600/60 text-xs text-rose-300 flex items-center gap-2">
+            <span>⚠️</span>
+            <span>{errorMsg}</span>
+          </div>
+        )}
 
         {/* Nút bấm Lập Lá Số */}
         <div className="pt-2">

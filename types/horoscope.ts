@@ -9,14 +9,14 @@ export interface CanhGio {
 
 export interface HoroscopeFormData {
   name: string;
-  gender: Gender;
+  gender: Gender | '';
   isLunar: boolean;
-  day: number;
-  month: number;
-  year: number;
-  hour: number;
-  minute: number;
-  viewYear: number;
+  day: number | '';
+  month: number | '';
+  year: number | '';
+  hour: number | '';
+  minute: number | '';
+  viewYear: number | '';
 }
 
 export interface FeatureItem {

@@ -3,14 +3,14 @@
 import { CANH_GIO_LIST } from '@/constants/canh-gio';
 
 interface CanhGioPickerProps {
-  selectedHour?: number;
+  selectedHour?: number | '';
   onSelect: (hour: number, minute: number) => void;
 }
 
 export function CanhGioPicker({ selectedHour, onSelect }: CanhGioPickerProps) {
   // Check xem canh giờ nào đang được chọn
-  const isMatchingCanhGio = (canhName: string, hour?: number) => {
-    if (hour === undefined) return false;
+  const isMatchingCanhGio = (canhName: string, hour?: number | '') => {
+    if (hour === undefined || hour === '') return false;
     switch (canhName) {
       case 'Tý': return hour === 23 || hour === 0;
       case 'Sửu': return hour === 1 || hour === 2;
